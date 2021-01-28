@@ -31,7 +31,7 @@ group :development, :test do
 
   # RSpec
   gem 'rspec-rails', '~> 4.0.2'
-  gem 'factory_girl_rails'
+  gem 'factory_bot_rails'
 end
 
 group :development do
@@ -42,3 +42,6 @@ end
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem 'tzinfo-data', platforms: [:mingw, :mswin, :x64_mingw, :jruby]
+
+gem 'active_model_serializers'
+gem 'rack-cors'
