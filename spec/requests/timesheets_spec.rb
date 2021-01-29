@@ -17,11 +17,14 @@ RSpec.describe "/timesheets", type: :request do
   # Timesheet. As you add validations to Timesheet, be sure to
   # adjust the attributes here as well.
   let(:valid_attributes) {
+    employee = create(:employee)
+    timesheet = build(:timesheet, { employee: employee })
     {
-      company: "MTN",
-      date: "2019-08-01",
-      start_time: "09:00",
-      end_time: "17:00"
+      employee_id: employee.id,
+      company: timesheet.company,
+      date: timesheet.date.strftime("%Y-%m-%d"),
+      start_time: timesheet.start_time.strftime("%H:%M"),
+      end_time: timesheet.end_time.strftime("%H:%M")
     }
   }
 
@@ -44,7 +47,8 @@ RSpec.describe "/timesheets", type: :request do
 
   describe "GET /index" do
     it "renders a successful response" do
-      @timesheet = create(:timesheet)
+      employee = create(:employee)
+      timesheet = create(:timesheet, { employee: employee })
       get timesheets_url, headers: valid_headers, as: :json
       expect(response).to be_successful
     end
@@ -82,6 +86,41 @@ RSpec.describe "/timesheets", type: :request do
              params: { timesheet: valid_attributes }, headers: valid_headers, as: :json
         expect(response).to have_http_status(:created)
         expect(response.content_type).to match(a_string_including("application/json"))
+      end
+
+      it "does not create a new Timesheet when employee provides hours overlaps with previous timesheet" do
+        employee = create(:employee)
+        valid_attributes['employee_id'] = employee.id
+      
+        overlapping_timesheet = create(:timesheet, {
+          employee_id: employee.id,
+          date: valid_attributes[:date],
+          start_time: Time.parse(valid_attributes[:date] + " " + valid_attributes[:start_time]),
+          end_time: Time.parse(valid_attributes[:date] + " " + valid_attributes[:end_time])
+        })
+
+        expect {
+          post timesheets_url,
+               params: { timesheet: valid_attributes }, headers: valid_headers, as: :json
+        }.to change(Timesheet, :count).by(0)
+      end
+
+      it "creates a new Timesheet when employee provides hours overlaps with ANOTHER EMPLOYEEs existing timesheet" do
+        employee = create(:employee)
+        valid_attributes['employee_id'] = employee.id
+      
+        employee1 = create(:employee)
+        overlapping_timesheet = create(:timesheet, {
+          employee_id: employee1.id,
+          date: valid_attributes[:date],
+          start_time: Time.parse(valid_attributes[:date] + " " + valid_attributes[:start_time]),
+          end_time: Time.parse(valid_attributes[:date] + " " + valid_attributes[:end_time])
+        })
+
+        expect {
+          post timesheets_url,
+               params: { timesheet: valid_attributes }, headers: valid_headers, as: :json
+        }.to change(Timesheet, :count).by(1)
       end
     end
 

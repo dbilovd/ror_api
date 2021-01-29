@@ -178,6 +178,8 @@ GEM
     timeliness (0.4.4)
     tzinfo (2.0.4)
       concurrent-ruby (~> 1.0)
+    validates_overlap (1.0.0)
+      rails (>= 6.0.0)
     validates_timeliness (5.0.0.beta2)
       timeliness (>= 0.3.10, < 1)
     websocket-driver (0.7.3)
@@ -203,6 +205,7 @@ DEPENDENCIES
   sqlite3 (~> 1.4)
   time_difference
   tzinfo-data
+  validates_overlap
   validates_timeliness (~> 5.0.0.beta1)
 
 RUBY VERSION
