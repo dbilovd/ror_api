@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :employee do
     name { "MyString" }
-    grade { nil }
+    grade { build(:grade) }
   end
 end

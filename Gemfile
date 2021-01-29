@@ -45,3 +45,4 @@ gem 'tzinfo-data', platforms: [:mingw, :mswin, :x64_mingw, :jruby]
 
 gem 'active_model_serializers'
 gem 'rack-cors'
+gem 'validates_timeliness', '~> 5.0.0.beta1'
