@@ -3,11 +3,13 @@ class Timesheet < ApplicationRecord
   belongs_to :employee
 
   # Validations
-  validates       :employee_id, :company, :date, :start_time, :end_time, presence: true
+  validates       :company, :date, :start_time, :end_time, presence: true
   validates_date  :date
   validates_time  :start_time, before: :end_time
   validates_time  :end_time, after: :start_time
-  validates       :start_time, :end_time, :overlap => {:scope => "employee_id"}
+
+  # @todo Enable this validation
+  # validates       :start_time, :end_time, :overlap => {:scope => "employee_id"}
 
   def billable_hours
   	TimeDifference.between(self.start_time, self.end_time).in_hours

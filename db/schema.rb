@@ -10,13 +10,14 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_01_29_081343) do
+ActiveRecord::Schema.define(version: 2021_01_29_135537) do
 
   create_table "employees", force: :cascade do |t|
     t.string "name"
     t.integer "grade_id", null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.string "api_key"
     t.index ["grade_id"], name: "index_employees_on_grade_id"
   end
 

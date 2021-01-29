@@ -17,10 +17,8 @@ RSpec.describe "/timesheets", type: :request do
   # Timesheet. As you add validations to Timesheet, be sure to
   # adjust the attributes here as well.
   let(:valid_attributes) {
-    employee = create(:employee)
-    timesheet = build(:timesheet, { employee: employee })
+    timesheet = build(:timesheet, { employee: @employee })
     {
-      employee_id: employee.id,
       company: timesheet.company,
       date: timesheet.date.strftime("%Y-%m-%d"),
       start_time: timesheet.start_time.strftime("%H:%M"),
@@ -46,18 +44,43 @@ RSpec.describe "/timesheets", type: :request do
   }
 
   describe "GET /index" do
-    it "renders a successful response" do
+    it "renders all timesheets by this employee" do
       employee = create(:employee)
       timesheet = create(:timesheet, { employee: employee })
+      timesheet_2 = create(:timesheet, { employee: employee })
+
+      valid_headers['Authorization'] = "Bearer " + employee.api_key
       get timesheets_url, headers: valid_headers, as: :json
       expect(response).to be_successful
+
+      parsed_json = JSON.parse(response.body)
+      expect(parsed_json[0]["id"]).to eq(timesheet[:id])
+      expect(parsed_json[1]["id"]).to eq(timesheet_2[:id])
+    end
+
+    it "does not render timesheets by a different employee" do
+      employee = create(:employee)
+      timesheet = create(:timesheet, { employee: employee })
+
+      employee_2 = create(:employee)
+      timesheet_2 = create(:timesheet, { employee: employee_2 })
+
+      valid_headers['Authorization'] = "Bearer " + employee.api_key
+      get timesheets_url, headers: valid_headers, as: :json
+      expect(response).to be_successful
+
+      parsed_json = JSON.parse(response.body)
+      expect(parsed_json.length).to eq(1)
+      expect(parsed_json[0]["id"]).to eq(timesheet[:id])
     end
   end
 
   describe "GET /show" do
-    it "renders a successful response" do
+    it "renders a successful response for owner employee" do
       timesheet = create(:timesheet, valid_attributes)
-      get timesheet_url(timesheet), as: :json
+
+      valid_headers['Authorization'] = "Bearer " + timesheet.employee.api_key
+      get timesheet_url(timesheet), headers: valid_headers, as: :json
       expect(response).to be_successful
       parsed_json = JSON.parse(response.body)
       expect(parsed_json['company']).to eq(timesheet.company)
@@ -65,13 +88,24 @@ RSpec.describe "/timesheets", type: :request do
       expect(parsed_json['start_time']).to eq(timesheet.start_time.strftime("%H:%M"))
       expect(parsed_json['end_time']).to eq(timesheet.end_time.strftime("%H:%M"))
     end
+
+    it "renders a 404 response for employee NOT Owner" do
+      timesheet = create(:timesheet, valid_attributes)
+
+      another_employee = create(:employee)
+      valid_headers['Authorization'] = "Bearer " + another_employee.api_key
+
+      get timesheet_url(timesheet), headers: valid_headers, as: :json
+      expect(response).to have_http_status(:not_found)
+    end
   end
 
   describe "POST /create" do
     context "with valid parameters" do
       it "creates a new Timesheet" do
-        @employee = create(:employee)
-        valid_attributes['employee_id'] = @employee.id
+        employee = create(:employee)
+        valid_attributes['employee_id'] = employee.id
+        valid_headers['Authorization'] = "Bearer " + employee.api_key
 
         expect {
           post timesheets_url,
@@ -80,12 +114,16 @@ RSpec.describe "/timesheets", type: :request do
       end
 
       it "renders a JSON response with the new timesheet" do
-        @employee = create(:employee)
-        valid_attributes['employee_id'] = @employee.id
+        employee = create(:employee)
+        valid_headers['Authorization'] = "Bearer " + employee.api_key
+
         post timesheets_url,
              params: { timesheet: valid_attributes }, headers: valid_headers, as: :json
         expect(response).to have_http_status(:created)
         expect(response.content_type).to match(a_string_including("application/json"))
+
+        parsed_json = JSON.parse(response.body)
+        expect(parsed_json["employee"]["id"]).to eq(employee[:id])
       end
 
       it "does not create a new Timesheet when employee provides hours overlaps with previous timesheet" do
@@ -107,7 +145,6 @@ RSpec.describe "/timesheets", type: :request do
 
       it "creates a new Timesheet when employee provides hours overlaps with ANOTHER EMPLOYEEs existing timesheet" do
         employee = create(:employee)
-        valid_attributes['employee_id'] = employee.id
       
         employee1 = create(:employee)
         overlapping_timesheet = create(:timesheet, {
@@ -117,6 +154,7 @@ RSpec.describe "/timesheets", type: :request do
           end_time: Time.parse(valid_attributes[:date] + " " + valid_attributes[:end_time])
         })
 
+        valid_headers['Authorization'] = "Bearer " + employee.api_key
         expect {
           post timesheets_url,
                params: { timesheet: valid_attributes }, headers: valid_headers, as: :json
@@ -133,6 +171,9 @@ RSpec.describe "/timesheets", type: :request do
       end
 
       it "renders a JSON response with errors for the new timesheet" do
+        employee = create(:employee)
+        valid_headers['Authorization'] = "Bearer " + employee.api_key
+
         post timesheets_url,
              params: { timesheet: invalid_attributes }, headers: valid_headers, as: :json
         expect(response).to have_http_status(:unprocessable_entity)
@@ -187,6 +228,9 @@ RSpec.describe "/timesheets", type: :request do
 
       it "updates the requested timesheet" do
         timesheet = create(:timesheet, valid_attributes)
+
+        valid_headers['Authorization'] = "Bearer " + timesheet.employee.api_key
+
         patch timesheet_url(timesheet),
               params: { timesheet: new_attributes }, headers: valid_headers, as: :json
         timesheet.reload
@@ -200,16 +244,33 @@ RSpec.describe "/timesheets", type: :request do
 
       it "renders a JSON response with the timesheet" do
         timesheet = create(:timesheet, valid_attributes)
+
+        valid_headers['Authorization'] = "Bearer " + timesheet.employee.api_key
+
         patch timesheet_url(timesheet),
               params: { timesheet: new_attributes }, headers: valid_headers, as: :json
         expect(response).to have_http_status(:ok)
         expect(response.content_type).to match(a_string_including("application/json"))
+      end
+
+      it "renders a 404 response for employee NOT Owner" do
+        timesheet = create(:timesheet, valid_attributes)
+
+        another_employee = create(:employee)
+        valid_headers['Authorization'] = "Bearer " + another_employee.api_key
+
+        patch timesheet_url(timesheet),
+              params: { timesheet: new_attributes }, headers: valid_headers, as: :json
+        expect(response).to have_http_status(:not_found)
       end
     end
 
     context "with invalid parameters" do
       it "renders a JSON response with errors for the timesheet" do
         timesheet = create(:timesheet, valid_attributes)
+
+        valid_headers['Authorization'] = "Bearer " + timesheet.employee.api_key
+
         patch timesheet_url(timesheet),
               params: { timesheet: invalid_attributes }, headers: valid_headers, as: :json
         expect(response).to have_http_status(:unprocessable_entity)
@@ -221,9 +282,22 @@ RSpec.describe "/timesheets", type: :request do
   describe "DELETE /destroy" do
     it "destroys the requested timesheet" do
       timesheet = create(:timesheet, valid_attributes)
+      valid_headers['Authorization'] = "Bearer " + timesheet.employee.api_key
       expect {
         delete timesheet_url(timesheet), headers: valid_headers, as: :json
       }.to change(Timesheet, :count).by(-1)
+    end
+
+    it "renders a 404 response for employee NOT Owner" do
+      timesheet = create(:timesheet, valid_attributes)
+
+      another_employee = create(:employee)
+      valid_headers['Authorization'] = "Bearer " + another_employee.api_key
+
+      expect {
+        delete timesheet_url(timesheet), headers: valid_headers, as: :json
+      }.to change(Timesheet, :count).by(0)
+      expect(response).to have_http_status(:not_found)
     end
   end
 end
