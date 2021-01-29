@@ -17,11 +17,17 @@ RSpec.describe "/grades", type: :request do
   # Grade. As you add validations to Grade, be sure to
   # adjust the attributes here as well.
   let(:valid_attributes) {
-    skip("Add a hash of attributes valid for your model")
+    {
+      title: "Grade Title",
+      rate: 50000
+    }
   }
 
   let(:invalid_attributes) {
-    skip("Add a hash of attributes invalid for your model")
+    {
+      title: "",
+      rate: "GHS 120"
+    }
   }
 
   # This should return the minimal set of values that should be in the headers
@@ -77,7 +83,7 @@ RSpec.describe "/grades", type: :request do
         post grades_url,
              params: { grade: invalid_attributes }, headers: valid_headers, as: :json
         expect(response).to have_http_status(:unprocessable_entity)
-        expect(response.content_type).to eq("application/json")
+        expect(response.content_type).to eq("application/json; charset=utf-8")
       end
     end
   end
@@ -85,7 +91,10 @@ RSpec.describe "/grades", type: :request do
   describe "PATCH /update" do
     context "with valid parameters" do
       let(:new_attributes) {
-        skip("Add a hash of attributes valid for your model")
+        {
+          title: "Updated Grade",
+          rate: 60000
+        }
       }
 
       it "updates the requested grade" do
@@ -93,7 +102,10 @@ RSpec.describe "/grades", type: :request do
         patch grade_url(grade),
               params: { grade: new_attributes }, headers: valid_headers, as: :json
         grade.reload
-        skip("Add assertions for updated state")
+        
+        parsed_response = JSON.parse(response.body)
+        expect(parsed_response[:title]).to eq(new_attributes['title'])
+        expect(parsed_response[:rate]).to eq(new_attributes['rate'])
       end
 
       it "renders a JSON response with the grade" do
@@ -111,7 +123,7 @@ RSpec.describe "/grades", type: :request do
         patch grade_url(grade),
               params: { grade: invalid_attributes }, headers: valid_headers, as: :json
         expect(response).to have_http_status(:unprocessable_entity)
-        expect(response.content_type).to eq("application/json")
+        expect(response.content_type).to eq("application/json; charset=utf-8")
       end
     end
   end
