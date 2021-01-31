@@ -2,6 +2,10 @@
 
 This is an API for effective revenue collection
 
+## Important Notes
+
+1. All amounts are in Pesewas (GHP)
+
 ## API Documentation
 
 ### Authorization
