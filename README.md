@@ -4,7 +4,7 @@ This is an API for effective revenue collection
 
 ## Important Notes
 
-1. All amounts are in Pesewas (GHP)
+1. All amounts are in GHP (Pesewas.) So When a timesheet will return 1000 representing GHS 10.
 
 ## API Documentation
 
